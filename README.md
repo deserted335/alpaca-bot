@@ -33,4 +33,4 @@ python -m pip install -r requirements.txt
 python main.py
 ```
 
-봇은 서버 멤버 목록이나 메시지 내용을 읽지 않으므로 별도의 privileged intents는 필요하지 않습니다.
+기본적으로 슬래시 명령 이름과 사용자·서버·채널 ID, 수신 메시지의 ID와 작성자·채널 ID를 로그에 기록합니다. 메시지 본문은 기본적으로 기록하지 않습니다. 본문을 확인하려면 Discord Developer Portal의 Bot 설정에서 **Message Content Intent**를 켜고 `.env`에 `LOG_MESSAGE_CONTENT=true`를 추가한 뒤 봇을 재시작하세요. 본문이 로그에 저장되므로 디버깅 후 끄는 것을 권합니다. 메시지 이벤트를 받으려면 봇에 해당 채널 보기 권한도 필요합니다.

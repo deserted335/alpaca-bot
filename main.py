@@ -15,7 +15,9 @@ logger = logging.getLogger("alpaca_bot")
 
 class AlpacaBot(discord.Client):
     def __init__(self) -> None:
-        super().__init__(intents=discord.Intents.default())
+        intents = discord.Intents.default()
+        intents.message_content = os.getenv("LOG_MESSAGE_CONTENT", "").lower() in {"1", "true", "yes"}
+        super().__init__(intents=intents)
         self.tree = app_commands.CommandTree(self)
 
     async def setup_hook(self) -> None:
@@ -60,6 +62,35 @@ async def run(interaction: discord.Interaction) -> None:
 @bot.event
 async def on_ready() -> None:
     logger.info("Logged in as %s", bot.user)
+
+
+@bot.event
+async def on_interaction(interaction: discord.Interaction) -> None:
+    if interaction.type is discord.InteractionType.application_command:
+        logger.info("Command name=%s user=%s guild=%s channel=%s",
+                    (interaction.data or {}).get("name"), interaction.user.id,
+                    interaction.guild_id, interaction.channel_id)
+
+
+@bot.event
+async def on_message(message: discord.Message) -> None:
+    if message.author == bot.user:
+        return
+    logger.info("Message user=%s guild=%s channel=%s message=%s",
+                message.author.id, message.guild.id if message.guild else None,
+                message.channel.id, message.id)
+    if bot.intents.message_content:
+        logger.info("Message content message=%s content=%r", message.id, message.content)
+
+
+@bot.tree.error
+async def on_app_command_error(interaction: discord.Interaction, error: app_commands.AppCommandError) -> None:
+    logger.error("Command failed user=%s channel=%s", interaction.user.id,
+                 interaction.channel_id, exc_info=(type(error), error, error.__traceback__))
+    if interaction.response.is_done():
+        await interaction.followup.send("명령 실행 중 오류가 발생했습니다.", ephemeral=True)
+    else:
+        await interaction.response.send_message("명령 실행 중 오류가 발생했습니다.", ephemeral=True)
 
 
 def main() -> None:
