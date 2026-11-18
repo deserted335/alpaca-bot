@@ -1,6 +1,7 @@
 import logging
 import os
 
+import aiohttp
 import discord
 from discord import app_commands
 
@@ -36,6 +37,24 @@ bot = AlpacaBot()
 @bot.tree.command(name="ping", description="Pong으로 응답합니다.")
 async def ping(interaction: discord.Interaction) -> None:
     await interaction.response.send_message("Pong!")
+
+
+@bot.tree.command(name="run", description="격리된 작업 컨테이너에서 실행을 확인합니다.")
+async def run(interaction: discord.Interaction) -> None:
+    owner_id = os.getenv("DISCORD_OWNER_ID", "")
+    if not owner_id.isdecimal() or interaction.user.id != int(owner_id):
+        await interaction.response.send_message("이 명령을 실행할 권한이 없습니다.", ephemeral=True)
+        return
+    await interaction.response.defer(thinking=True, ephemeral=True)
+    try:
+        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=45)) as session:
+            async with session.post("http://worker:8080/run") as response:
+                result = await response.json()
+                message = result.get("message", "작업 결과가 없습니다.")
+    except (aiohttp.ClientError, TimeoutError):
+        logger.exception("Worker request failed")
+        message = "작업 서버에 연결할 수 없습니다. 서버 로그를 확인하세요."
+    await interaction.followup.send(message[:1900], ephemeral=True)
 
 
 @bot.event
