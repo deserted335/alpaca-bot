@@ -37,6 +37,34 @@ class AlpacaBot(discord.Client):
 bot = AlpacaBot()
 
 
+async def send_result(interaction: discord.Interaction, content: str, file: discord.File | None = None) -> None:
+    """작업 결과를 명령을 실행한 텍스트 채널에 일반 메시지로 게시합니다."""
+    content = content[:1900]
+    channel = interaction.channel
+    if isinstance(channel, discord.abc.Messageable):
+        try:
+            if file:
+                await channel.send(content, file=file)
+            else:
+                await channel.send(content)
+        except discord.HTTPException:
+            logger.exception("Failed to send result to channel=%s", interaction.channel_id)
+            if file:
+                file.reset()
+        else:
+            # 결과를 채널에 게시했으니 본인만 보이는 "생각 중..." 응답은 지웁니다.
+            try:
+                await interaction.delete_original_response()
+            except discord.HTTPException:
+                logger.warning("Failed to delete deferred response", exc_info=True)
+            return
+    # 채널에 보낼 수 없으면(권한 부족, DM 등) 기존 방식으로 대신 응답합니다.
+    if file:
+        await interaction.followup.send(content, file=file, ephemeral=True)
+    else:
+        await interaction.followup.send(content, ephemeral=True)
+
+
 @bot.tree.command(name="ping", description="Pong으로 응답합니다.")
 async def ping(interaction: discord.Interaction) -> None:
     await interaction.response.send_message("Pong!")
@@ -57,7 +85,7 @@ async def run(interaction: discord.Interaction) -> None:
     except (aiohttp.ClientError, TimeoutError):
         logger.exception("Worker request failed")
         message = "작업 서버에 연결할 수 없습니다. 서버 로그를 확인하세요."
-    await interaction.followup.send(message[:1900], ephemeral=True)
+    await send_result(interaction, message)
 
 
 @bot.tree.command(name="repo_test", description="저장소 복사본에서 수정과 테스트를 확인합니다.")
@@ -75,7 +103,7 @@ async def repo_test(interaction: discord.Interaction) -> None:
     except (aiohttp.ClientError, TimeoutError):
         logger.exception("Repository test request failed")
         message = "작업 서버에 연결할 수 없습니다. 서버 로그를 확인하세요."
-    await interaction.followup.send(message[:1900], ephemeral=True)
+    await send_result(interaction, message)
 
 
 @bot.tree.command(name="develop", description="Claude에게 저장소 수정 작업을 요청합니다.")
@@ -94,12 +122,12 @@ async def develop(interaction: discord.Interaction, task: str) -> None:
         diff = result.get("diff", "")
         if diff:
             attachment = discord.File(io.BytesIO(diff.encode("utf-8")), filename="changes.patch")
-            await interaction.followup.send(message[:1900], file=attachment, ephemeral=True)
+            await send_result(interaction, message, file=attachment)
         else:
-            await interaction.followup.send(message[:1900], ephemeral=True)
+            await send_result(interaction, message)
     except (aiohttp.ClientError, TimeoutError):
         logger.exception("Development request failed")
-        await interaction.followup.send("작업 서버에 연결할 수 없거나 시간이 초과됐습니다.", ephemeral=True)
+        await send_result(interaction, "작업 서버에 연결할 수 없거나 시간이 초과됐습니다.")
 
 
 @bot.tree.command(name="pr", description="검토한 작업으로 GitHub 초안 PR을 만듭니다.")
@@ -114,10 +142,10 @@ async def create_pr(interaction: discord.Interaction, job_id: str) -> None:
         async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=180)) as session:
             async with session.post("http://worker:8080/pr", json={"job_id": job_id}) as response:
                 result = await response.json()
-        await interaction.followup.send(result.get("message", "PR 결과가 없습니다.")[:1900], ephemeral=True)
+        await send_result(interaction, result.get("message", "PR 결과가 없습니다."))
     except (aiohttp.ClientError, TimeoutError):
         logger.exception("PR request failed")
-        await interaction.followup.send("PR 요청에 실패했습니다. GitHub 브랜치와 서버 로그를 확인하세요.", ephemeral=True)
+        await send_result(interaction, "PR 요청에 실패했습니다. GitHub 브랜치와 서버 로그를 확인하세요.")
 
 
 @bot.event
