@@ -4,6 +4,12 @@ Python `discord.py`로 만든 Discord 봇입니다. 현재 `/ping` 명령에 `Po
 
 `/run`은 별도 컨테이너에서 고정된 echo 명령을 실행하는 연결 확인용 명령입니다. `.env`에 `DISCORD_OWNER_ID=본인의_숫자_사용자_ID`를 설정해야 실행할 수 있습니다. 한 번에 한 작업만 허용하며 네트워크 없이 실행하고 30초, 메모리 128MB, CPU 0.5개로 제한합니다. 결과는 요청자에게만 보입니다.
 
+`/repo_test`는 공개 `deserted335/alpaca-bot` 저장소를 임시로 복제하고, 격리 컨테이너에서 README에 테스트용 문구를 추가하고 Python 문법을 검사합니다. 변경 diff를 요청자에게 보여주며 원본에는 반영하지 않습니다. 작업 관리자는 GitHub 접근이 필요하며, 작업 컨테이너에는 네트워크가 없습니다.
+
+## Claude Code 로그인 준비
+
+`docker compose --profile manual build claude`로 이미지를 만들고 `docker compose --profile manual run --rm claude auth login`으로 본인이 직접 Claude 구독 계정에 로그인합니다. 로그인 정보는 `claude-home` Docker 볼륨에 보관됩니다. Claude Code가 Anthropic에 접속하려면 네트워크가 필요합니다. 이 단계는 로그인 준비이며 Discord 작업 실행과 아직 연결되지 않습니다.
+
 작업 관리 컨테이너만 Docker 소켓을 사용합니다. Docker 소켓은 호스트 관리자 수준의 권한을 제공하므로 작업 관리자와 그 내부 네트워크는 신뢰할 수 있는 코드로만 운영해야 합니다. 작업 컨테이너에는 소켓이나 봇 토큰을 전달하지 않습니다.
 
 ## Docker로 실행

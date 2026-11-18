@@ -19,7 +19,18 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
+      - default
       - jobs
+  claude:
+    profiles: ["manual"]
+    build:
+      context: .
+      dockerfile: Dockerfile.claude
+    volumes:
+      - claude-home:/home/claude
+
+volumes:
+  claude-home:
 
 networks:
   jobs:

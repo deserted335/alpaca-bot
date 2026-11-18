@@ -59,6 +59,24 @@ async def run(interaction: discord.Interaction) -> None:
     await interaction.followup.send(message[:1900], ephemeral=True)
 
 
+@bot.tree.command(name="repo_test", description="저장소 복사본에서 수정과 테스트를 확인합니다.")
+async def repo_test(interaction: discord.Interaction) -> None:
+    owner_id = os.getenv("DISCORD_OWNER_ID", "")
+    if not owner_id.isdecimal() or interaction.user.id != int(owner_id):
+        await interaction.response.send_message("이 명령을 실행할 권한이 없습니다.", ephemeral=True)
+        return
+    await interaction.response.defer(thinking=True, ephemeral=True)
+    try:
+        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=150)) as session:
+            async with session.post("http://worker:8080/repo-test") as response:
+                result = await response.json()
+                message = result.get("message", "작업 결과가 없습니다.")
+    except (aiohttp.ClientError, TimeoutError):
+        logger.exception("Repository test request failed")
+        message = "작업 서버에 연결할 수 없습니다. 서버 로그를 확인하세요."
+    await interaction.followup.send(message[:1900], ephemeral=True)
+
+
 @bot.event
 async def on_ready() -> None:
     logger.info("Logged in as %s", bot.user)
