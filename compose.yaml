@@ -16,6 +16,9 @@ services:
       context: .
       dockerfile: Dockerfile.worker
     restart: unless-stopped
+    environment:
+      CLAUDE_VOLUME: ${COMPOSE_PROJECT_NAME:-alpaca-bot}_claude-home
+      CLAUDE_IMAGE: alpaca-bot-claude
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
@@ -23,6 +26,7 @@ services:
       - jobs
   claude:
     profiles: ["manual"]
+    image: alpaca-bot-claude
     build:
       context: .
       dockerfile: Dockerfile.claude

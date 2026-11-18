@@ -8,7 +8,9 @@ Python `discord.py`로 만든 Discord 봇입니다. 현재 `/ping` 명령에 `Po
 
 ## Claude Code 로그인 준비
 
-`docker compose --profile manual build claude`로 이미지를 만들고 `docker compose --profile manual run --rm claude auth login`으로 본인이 직접 Claude 구독 계정에 로그인합니다. 로그인 정보는 `claude-home` Docker 볼륨에 보관됩니다. Claude Code가 Anthropic에 접속하려면 네트워크가 필요합니다. 이 단계는 로그인 준비이며 Discord 작업 실행과 아직 연결되지 않습니다.
+`docker compose --profile manual build claude`로 이미지를 만들고 `docker compose --profile manual run --rm claude auth login`으로 본인이 직접 Claude 구독 계정에 로그인합니다. 로그인 정보는 `claude-home` Docker 볼륨에 보관됩니다. Claude Code가 Anthropic에 접속하려면 네트워크가 필요합니다.
+
+`/develop task:작업내용`은 소유자만 사용할 수 있습니다. GitHub 기본 브랜치를 새로 복제해 Claude Code가 수정하며, 결과를 patch 파일로 전달합니다. 변경은 자동으로 반영되지 않습니다. Claude의 Bash 도구는 비활성화하며 별도의 네트워크 없는 컨테이너에서 Python 문법 검사를 실행합니다. 이 검사는 프로젝트의 전체 테스트가 아닙니다. Claude 작업 컨테이너는 인증 볼륨과 인터넷에 접근할 수 있으므로 신뢰하는 저장소와 지시만 사용하세요. 최초 실행 전에 Claude 이미지를 빌드하고 로그인해야 합니다.
 
 작업 관리 컨테이너만 Docker 소켓을 사용합니다. Docker 소켓은 호스트 관리자 수준의 권한을 제공하므로 작업 관리자와 그 내부 네트워크는 신뢰할 수 있는 코드로만 운영해야 합니다. 작업 컨테이너에는 소켓이나 봇 토큰을 전달하지 않습니다.
 

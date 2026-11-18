@@ -1,5 +1,6 @@
 import logging
 import os
+import io
 
 import aiohttp
 import discord
@@ -75,6 +76,30 @@ async def repo_test(interaction: discord.Interaction) -> None:
         logger.exception("Repository test request failed")
         message = "작업 서버에 연결할 수 없습니다. 서버 로그를 확인하세요."
     await interaction.followup.send(message[:1900], ephemeral=True)
+
+
+@bot.tree.command(name="develop", description="Claude에게 저장소 수정 작업을 요청합니다.")
+@app_commands.describe(task="수행할 작업")
+async def develop(interaction: discord.Interaction, task: str) -> None:
+    owner_id = os.getenv("DISCORD_OWNER_ID", "")
+    if not owner_id.isdecimal() or interaction.user.id != int(owner_id):
+        await interaction.response.send_message("이 명령을 실행할 권한이 없습니다.", ephemeral=True)
+        return
+    await interaction.response.defer(thinking=True, ephemeral=True)
+    try:
+        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=600)) as session:
+            async with session.post("http://worker:8080/develop", json={"task": task}) as response:
+                result = await response.json()
+        message = result.get("message", "작업 결과가 없습니다.")
+        diff = result.get("diff", "")
+        if diff:
+            attachment = discord.File(io.BytesIO(diff.encode("utf-8")), filename="changes.patch")
+            await interaction.followup.send(message[:1900], file=attachment, ephemeral=True)
+        else:
+            await interaction.followup.send(message[:1900], ephemeral=True)
+    except (aiohttp.ClientError, TimeoutError):
+        logger.exception("Development request failed")
+        await interaction.followup.send("작업 서버에 연결할 수 없거나 시간이 초과됐습니다.", ephemeral=True)
 
 
 @bot.event
