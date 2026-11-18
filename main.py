@@ -102,6 +102,24 @@ async def develop(interaction: discord.Interaction, task: str) -> None:
         await interaction.followup.send("작업 서버에 연결할 수 없거나 시간이 초과됐습니다.", ephemeral=True)
 
 
+@bot.tree.command(name="pr", description="검토한 작업으로 GitHub 초안 PR을 만듭니다.")
+@app_commands.describe(job_id="/develop 결과에 표시된 작업 ID")
+async def create_pr(interaction: discord.Interaction, job_id: str) -> None:
+    owner_id = os.getenv("DISCORD_OWNER_ID", "")
+    if not owner_id.isdecimal() or interaction.user.id != int(owner_id):
+        await interaction.response.send_message("이 명령을 실행할 권한이 없습니다.", ephemeral=True)
+        return
+    await interaction.response.defer(thinking=True, ephemeral=True)
+    try:
+        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=180)) as session:
+            async with session.post("http://worker:8080/pr", json={"job_id": job_id}) as response:
+                result = await response.json()
+        await interaction.followup.send(result.get("message", "PR 결과가 없습니다.")[:1900], ephemeral=True)
+    except (aiohttp.ClientError, TimeoutError):
+        logger.exception("PR request failed")
+        await interaction.followup.send("PR 요청에 실패했습니다. GitHub 브랜치와 서버 로그를 확인하세요.", ephemeral=True)
+
+
 @bot.event
 async def on_ready() -> None:
     logger.info("Logged in as %s", bot.user)

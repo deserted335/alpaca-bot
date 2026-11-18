@@ -19,8 +19,10 @@ services:
     environment:
       CLAUDE_VOLUME: ${COMPOSE_PROJECT_NAME:-alpaca-bot}_claude-home
       CLAUDE_IMAGE: alpaca-bot-claude
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - jobs-data:/data
     networks:
       - default
       - jobs
@@ -35,6 +37,7 @@ services:
 
 volumes:
   claude-home:
+  jobs-data:
 
 networks:
   jobs:
